@@ -1,0 +1,14 @@
+{
+  "DiscordToken": "",
+  "DiscordGuildIdWhitelist": [
+
+  ],
+  "RoleMap": {
+    "macon": "vip_macon",
+    "norge": "vip_norge",
+    "akron": "vip_akron",
+    "zeppelin": "vip_zeppelin",
+    "aereon": "vip_aereon",
+    "dragondream": "vip_dragondream"
+  }
+}
