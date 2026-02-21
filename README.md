@@ -187,7 +187,7 @@ Costo:
 ## Estensioni previste
 
 - Supporto multi-guild con mapping dedicato [low priority]
-- Comandi amministrativi di resync manuale
+- Supporto multi-server Hytale con mapping dedicato
 
 ---
 

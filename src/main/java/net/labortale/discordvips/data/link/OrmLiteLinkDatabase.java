@@ -8,6 +8,7 @@ import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
 import net.labortale.discordvips.DiscordVips;
 
+import javax.annotation.Nullable;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.Set;
@@ -68,13 +69,13 @@ public class OrmLiteLinkDatabase implements LinkDatabase {
     }
 
     @Override
-    public long getDiscord(UUID hytaleUuid) {
+    public @Nullable Long getDiscord(UUID hytaleUuid) {
         try {
             DiscordLinkEntity e = dao.queryForId(hytaleUuid);
-            return e != null ? e.discordId : -1;
+            return e != null ? e.discordId : null;
         } catch (SQLException e) {
             DiscordVips.getInstance().getLogger().atWarning().log("DB error while gettind Discord id from Hytale uuid", e);
-            return -1;
+            return null;
         }
     }
 

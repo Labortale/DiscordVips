@@ -5,6 +5,8 @@ import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.util.Config;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
+import net.labortale.discordvips.command.LinkDiscordCommand;
+import net.labortale.discordvips.command.SyncVipsCommand;
 import net.labortale.discordvips.data.link.LinkDatabase;
 import net.labortale.discordvips.data.pendinglink.PendingLinkDatabase;
 import net.labortale.discordvips.data.pendinglink.InMemoryPendingLinkDatabase;
@@ -29,7 +31,6 @@ public class DiscordVips extends JavaPlugin {
         instance = this;
         configManager = this.withConfig("config", PluginConfig.CODEC);
         purgeCodeScheduler = Executors.newSingleThreadScheduledExecutor();
-        purgeCodeScheduler.scheduleAtFixedRate(() -> DiscordVips.getPendingLinkDb().purgeExpired(System.currentTimeMillis()), 1, 10, TimeUnit.MINUTES);
     }
 
     private Config<PluginConfig> configManager;
@@ -39,7 +40,11 @@ public class DiscordVips extends JavaPlugin {
     }
 
     private ConnectionSource connSrc;
-    private DiscordBot discordBot;
+
+    private static DiscordBot discordBot;
+    public static DiscordBot getDiscordBot() {
+        return discordBot;
+    }
 
     private static DiscordVips instance;
     public static DiscordVips getInstance() {
@@ -65,9 +70,16 @@ public class DiscordVips extends JavaPlugin {
             getLogger().atSevere().log("Cannot start plugin: Discord token missing!");
             return;
         }
+        getCommandRegistry().registerCommand(new LinkDiscordCommand());
+        getCommandRegistry().registerCommand(new SyncVipsCommand());
+    }
+
+    @Override
+    public void start() {
         discordBot = new DiscordBot(CONFIG.getDiscordToken());
         discordBot.startFullSyncTask(3600, 10);
         try {
+            //init DBs
             Path dbPath = dataDirectory.resolve("database.db");
             connSrc = new JdbcConnectionSource("jdbc:sqlite:" + dbPath.toAbsolutePath());
             linkDb = new OrmLiteLinkDatabase(connSrc);
@@ -75,12 +87,13 @@ public class DiscordVips extends JavaPlugin {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+        purgeCodeScheduler.scheduleAtFixedRate(() -> DiscordVips.getPendingLinkDb().purgeExpired(System.currentTimeMillis()), 1, 10, TimeUnit.MINUTES);
     }
 
     @Override
     public void shutdown() {
-        discordBot.shutdown();
-        connSrc.closeQuietly();
+        if(discordBot != null) discordBot.shutdown();
+        if(connSrc != null) connSrc.closeQuietly();
         try {
             if (!purgeCodeScheduler.awaitTermination(5, TimeUnit.SECONDS)) {
                 purgeCodeScheduler.shutdownNow();

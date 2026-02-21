@@ -9,6 +9,7 @@ import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleRemoveEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.LuckPermsProvider;
 import net.luckperms.api.node.Node;
@@ -30,7 +31,9 @@ public class DiscordBot extends ListenerAdapter {
 
     public DiscordBot(String token) {
 
-        this.jda = JDABuilder.createDefault(token)
+        this.jda = JDABuilder.createDefault(token,
+                        GatewayIntent.GUILD_MEMBERS // serve per leggere ruoli dei membri
+                )
                 .addEventListeners(this)
                 .build();
 
@@ -41,12 +44,12 @@ public class DiscordBot extends ListenerAdapter {
         }
 
         jda.upsertCommand("link", "Collega il tuo account Hytale")
-                .addOption(OptionType.STRING, "code", "Codice di collegamento", true)
+                .addOption(OptionType.STRING, "code", "Codice di collegamento (esegui /linkdiscord in game)", true)
                 .queue();
     }
 
     /* =======================
-       COMMANDO !link <code>
+       COMMANDO /link <code>
        ======================= */
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
@@ -173,10 +176,15 @@ public class DiscordBot extends ListenerAdapter {
                         .filter(Objects::nonNull)
                         .collect(Collectors.toSet());
 
+                Set<String> managedGroups = rolesToSync.values().stream()
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet());
+
                 Set<String> groupsToAdd = new HashSet<>(targetGroups);
                 groupsToAdd.removeAll(currentGroups);
 
                 Set<String> groupsToRemove = new HashSet<>(currentGroups);
+                groupsToRemove.retainAll(managedGroups);
                 groupsToRemove.removeAll(targetGroups);
 
                 // aggiungi solo i gruppi mancanti
@@ -213,7 +221,7 @@ public class DiscordBot extends ListenerAdapter {
         scheduler.scheduleAtFixedRate(this::fullSync, initialDelay, intervalSeconds, TimeUnit.SECONDS);
     }
 
-    private void fullSync() {
+    public void fullSync() {
         Map<String, String> rolesToSync = DiscordVips.getConfig().getRoleMap();
         Map<Long, UUID> linked = DiscordVips.getLinkDb().getAll();
 
